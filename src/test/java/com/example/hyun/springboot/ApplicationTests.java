@@ -1,10 +1,10 @@
-package com.example.hyunspringbootwebservice;
+package com.example.hyun.springboot;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class HyunSpringbootWebserviceApplicationTests {
+class ApplicationTests {
 
   @Test
   void contextLoads() {
