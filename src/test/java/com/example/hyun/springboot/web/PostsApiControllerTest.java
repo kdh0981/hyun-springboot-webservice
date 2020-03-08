@@ -3,18 +3,26 @@ package com.example.hyun.springboot.web;
 import com.example.hyun.springboot.domain.posts.Posts;
 import com.example.hyun.springboot.domain.posts.PostsRepository;
 import com.example.hyun.springboot.web.dto.PostsRequestDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,7 +46,22 @@ class PostsApiControllerTest {
     postsRepository.deleteAll();
   }
 
+  @Autowired
+  private WebApplicationContext context;
+
+  private MockMvc mvc;
+
+  @BeforeEach
+  public void setup() {
+    mvc = MockMvcBuilders
+      .webAppContextSetup(context)
+      .apply(SecurityMockMvcConfigurers.springSecurity())
+      .build();
+  }
+
+
   @Test
+  @WithMockUser(roles="USER")
   void registerPosts() throws Exception {
     String title = "title";
     String content = "content";
@@ -49,18 +72,27 @@ class PostsApiControllerTest {
       .build();
 
     String url = "http://localhost:" + port + "/api/v1/posts";
-    HttpEntity<PostsRequestDto> entity = new HttpEntity<>(requestDto);
-    ResponseEntity<Long> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, entity, Long.class);
 
-    assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
-    assertTrue(responseEntity.getBody() > 0L);
+//    HttpEntity<PostsRequestDto> entity = new HttpEntity<>(requestDto);
+//    ResponseEntity<Long> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, entity, Long.class);
+//
+//    assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
+//    assertTrue(responseEntity.getBody() > 0L);
 
+    //when
+    mvc.perform(MockMvcRequestBuilders.post(url)
+      .contentType(MediaType.APPLICATION_JSON)
+      .content(new ObjectMapper().writeValueAsString(requestDto)))
+      .andExpect(MockMvcResultMatchers.status().isOk());
+
+    //then
     List<Posts> all = postsRepository.findAll();
     assertEquals(all.get(0).getTitle(), title);
     assertEquals(all.get(0).getContent(), content);
   }
 
   @Test
+  @WithMockUser(roles="USER")
   void updatePosts() throws Exception {
     Posts savedPosts = postsRepository.save(Posts.builder()
       .title("title")
@@ -78,12 +110,20 @@ class PostsApiControllerTest {
       .build();
 
     String url = "http://localhost:" + port + "/api/v1/posts/" + updateId;
-    HttpEntity<PostsRequestDto> requestEntity = new HttpEntity<>(requestDto);
-    ResponseEntity<Long> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, Long.class);
 
-    assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
-    assertEquals(responseEntity.getBody(), updateId);
+//    HttpEntity<PostsRequestDto> requestEntity = new HttpEntity<>(requestDto);
+//    ResponseEntity<Long> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, Long.class);
+//
+//    assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
+//    assertEquals(responseEntity.getBody(), updateId);
 
+    // when
+    mvc.perform(MockMvcRequestBuilders.put(url)
+      .contentType(MediaType.APPLICATION_JSON)
+      .content(new ObjectMapper().writeValueAsString(requestDto))
+    ).andExpect(MockMvcResultMatchers.status().isOk());
+
+    // then
     List<Posts> all = postsRepository.findAll();
     assertEquals(all.get(0).getTitle(), expectedTitle);
     assertEquals(all.get(0).getContent(), expectedContent);
